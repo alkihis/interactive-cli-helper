@@ -2,22 +2,22 @@ import { CliExecutor, CliSuggestor, CliStackItem } from ".";
 import { CliListener } from "./CliListener";
 import readline from 'readline';
 
-export interface CliHelperOptions { 
+export interface CliHelperOptions {
   /**
    * Function to execute / Object to show when no command matches.
    */
-  onNoMatch: CliExecutor, 
+  onNoMatch: CliExecutor,
   /**
    * Enable suggestion with `tab` key for this instance. Suggestions does **not work** with `RegExp` based listeners.
    */
-  suggestions?: boolean, 
+  suggestions?: boolean,
   /**
    * If no command matches, you can specify here a function to call to return suggestions from user entry.
    */
   onSuggest?: CliSuggestor,
   /**
    * Function to call when CLI is closed (for example, with CTRL+C).
-   * 
+   *
    * Default to
    * ```
    * () => console.log("Goodbye.")
@@ -27,25 +27,27 @@ export interface CliHelperOptions {
   /**
    * Function to call when a listener throw something or return an `Error` object.
    * If the command listener throw something that is **not** an `Error`, it is wrapped inside one.
-   * 
+   *
    * Default to
    * ```
    * error => console.warn(`Error encountered in CLI: ${error.message} (${error.stack})`)
    * ```
    */
   onCliError?: (error: Error) => void,
+  promptString?: string,
 }
 
 export default class CliHelper extends CliListener {
   protected enable_suggestions: boolean;
   protected rl_interface: readline.Interface | undefined;
   protected on_question = false;
-  promptString:string = '>> ';
+  public promptString = '>> ';
+
   /**
-   * Build a new instance of `CliHelper`. 
-   * 
+   * Build a new instance of `CliHelper`.
+   *
    * Add keywords/patterns you want to catch with `.addSubListener()`.
-   * 
+   *
    * @param no_match_executor The function that will be called if none of the defined sub-listeners matched.
    * If the returned value is static, you can specify a static `string` or `object`.
    */
@@ -54,6 +56,7 @@ export default class CliHelper extends CliListener {
     this.enable_suggestions = options.suggestions ?? true;
     this.onclose = options.onCliClose ?? this.onclose;
     this.onerror = options.onCliError ?? this.onerror;
+    this.promptString = options.promptString ?? this.promptString;
   }
 
   public onclose = () => {
@@ -66,29 +69,29 @@ export default class CliHelper extends CliListener {
 
   /**
    * Provide a method to generate a handler that print help messages in a fancy way.
-   * 
+   *
    * **{title}**: Title of help (generally, the command)
    *
    * **{options.commands}**: Available sub-commands on this handler.
-   * 
+   *
    * **{options.description}**: Put a description below {title}.
-   * 
+   *
    * **{options.onNoMatch}**: When user enter something that does not match after this command, this is executed.
    * ```ts
    * // Example: You defined help for "hello" with
    * const help = CliHelper.formatHelp(
-   *   "hello", 
-   *   { 
-   *     commands: { foo: 'Foo description', world: 'Says "Hello world!"' }, 
-   *     onNoMatch: rest => `Subcommand "${rest}" does not exists for "hello".` 
+   *   "hello",
+   *   {
+   *     commands: { foo: 'Foo description', world: 'Says "Hello world!"' },
+   *     onNoMatch: rest => `Subcommand "${rest}" does not exists for "hello".`
    *   }
    * );
-   * 
+   *
    * cli.command(
-   *  "hello", 
-   *  
+   *  "hello",
+   *
    * );
-   * 
+   *
    * // Then, the following will happen in CLI:
    * > hello t
    * Cli: Subcommand "t" does not exists for "hello".
@@ -102,7 +105,7 @@ export default class CliHelper extends CliListener {
   static formatHelp(title: string, options: {
     commands: {
       [name: string]: string
-    }, 
+    },
     onNoMatch?: CliExecutor,
     description?: string,
   }) {
@@ -120,13 +123,13 @@ export default class CliHelper extends CliListener {
 
     const content = entries.map(e => `${PAD_START}${e[0]}${e[1]}`).join('\n');
 
-    return (options.onNoMatch ? 
+    return (options.onNoMatch ?
       (rest: string, stack: CliStackItem[]) => {
         if (rest.trim()) {
           return typeof options.onNoMatch === 'function' ? options.onNoMatch(rest, stack, null) : options.onNoMatch;
         }
-        return `\n${title}\n${content}`;  
-      } : 
+        return `\n${title}\n${content}`;
+      } :
       `\n${title}\n${content}`
     );
   }
@@ -145,7 +148,7 @@ export default class CliHelper extends CliListener {
         this.getSuggests(line, [])
           .then(s => {
             callback(
-              null, 
+              null,
               [s[0].filter(e => e.startsWith(line) && e.length > line.length), s[1]]
             );
           })
@@ -205,7 +208,7 @@ export default class CliHelper extends CliListener {
       if (this.onclose) {
         this.onclose();
       }
-      
+
       process.exit(0);
     });
   }
@@ -239,8 +242,8 @@ export default class CliHelper extends CliListener {
 
   /**
    * Starts the listening of `stdin`.
-   * 
-   * Before that, please define the keywords 
+   *
+   * Before that, please define the keywords
    * you want to listen to with `.command()`.
    */
   listen() {
